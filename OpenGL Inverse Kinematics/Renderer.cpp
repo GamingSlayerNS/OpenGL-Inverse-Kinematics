@@ -267,7 +267,7 @@ void Renderer::camera_move()
 	if (glfwGetKey(m_window, GLFW_KEY_P) == GLFW_PRESS)
 		m_camera->reset();
 
-	int rot_direction = 45.0;
+	float rot_direction = 45.0f;
 	//NumPad keys
 	if (glfwGetKey(m_window, GLFW_KEY_KP_1) == GLFW_PRESS) {
 		m_bone_animation->rotation_degree_vector[1][0] = m_bone_animation->rotation_degree_vector[1][0] + rot_direction;
@@ -306,14 +306,45 @@ void Renderer::camera_move()
 		glfwWaitEvents();
 	}
 	if (glfwGetKey(m_window, GLFW_KEY_KP_0) == GLFW_PRESS) {
-		m_bone_animation->rotation_degree_vector = 
-		{
-			{0.0f,0.0f,0.0f},
-			{0.0f,0.0f,0.0f},
-			{0.0f,0.0f,0.0f},
-			{0.0f,0.0f,0.0f}
-		};
+		m_bone_animation->reset();
 		glfwWaitEvents();
+	}
+	if (glfwGetKey(m_window, GLFW_KEY_ENTER) == GLFW_PRESS) {
+		activate_IK = true;
+		glfwWaitEvents();
+	}
+	
+	float pos_change = 0.001;
+	//Changing target position
+	if (glfwGetKey(m_window, GLFW_KEY_UP) == GLFW_PRESS)
+	{
+		m_bone_animation->target_position[0] += pos_change;
+		glfwWaitEvents;
+	}
+	if (glfwGetKey(m_window, GLFW_KEY_DOWN) == GLFW_PRESS)
+	{
+		m_bone_animation->target_position[0] -= pos_change;
+		glfwWaitEvents;
+	}
+	if (glfwGetKey(m_window, GLFW_KEY_KP_ENTER) == GLFW_PRESS)
+	{
+		m_bone_animation->target_position[1] += pos_change;
+		glfwWaitEvents;
+	}
+	if (glfwGetKey(m_window, GLFW_KEY_KP_DECIMAL) == GLFW_PRESS)
+	{
+		m_bone_animation->target_position[1] -= pos_change;
+		glfwWaitEvents;
+	}
+	if (glfwGetKey(m_window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+	{
+		m_bone_animation->target_position[2] += pos_change;
+		glfwWaitEvents;
+	}
+	if (glfwGetKey(m_window, GLFW_KEY_LEFT) == GLFW_PRESS)
+	{
+		m_bone_animation->target_position[2] -= pos_change;
+		glfwWaitEvents;
 	}
 }
 
@@ -428,6 +459,11 @@ void Renderer::draw_bones(Shader& shader, Bone_Animation* m_bone_animation)
 	if (bone_obj == nullptr)
 		return;
 	
+	if (activate_IK)
+	{
+		activate_IK = m_bone_animation->jacobian_IK();
+	}
+
 	m_bone_animation->update(delta_time);
 
 	// Draw root bone
@@ -457,6 +493,14 @@ void Renderer::draw_bones(Shader& shader, Bone_Animation* m_bone_animation)
 	bone3_obj_mat = m_bone_animation->bone3_matrix(bone3_obj_mat);
 	glUniformMatrix4fv(glGetUniformLocation(shader.program, "model"), 1, GL_FALSE, glm::value_ptr(bone3_obj_mat));
 	bone_obj->obj_color = m_bone_animation->colors[3];
+	draw_object(shader, *bone_obj);
+
+	// Draw endEffector bone
+	glm::mat4 endEffector_obj_mat = glm::mat4(1.0f);
+	endEffector_obj_mat = glm::translate(endEffector_obj_mat, m_bone_animation->target_position);
+	endEffector_obj_mat = glm::scale(endEffector_obj_mat, m_bone_animation->scale_vector[0]);
+	glUniformMatrix4fv(glGetUniformLocation(shader.program, "model"), 1, GL_FALSE, glm::value_ptr(endEffector_obj_mat));
+	bone_obj->obj_color = m_bone_animation->colors[0];
 	draw_object(shader, *bone_obj);
 }
 

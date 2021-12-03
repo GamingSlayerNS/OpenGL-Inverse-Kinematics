@@ -46,6 +46,8 @@ public:
 
 	static bool keys[1024];
 
+	bool activate_IK = false;
+
 public:
 	Renderer();
 	~Renderer();
