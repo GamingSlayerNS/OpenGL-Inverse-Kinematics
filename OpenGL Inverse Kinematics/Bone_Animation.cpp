@@ -141,21 +141,75 @@ bool Bone_Animation::jacobian_IK()
 		get_jac_orientation();															//Find jacobian matrix
 
 		glm::vec3 goal_vec = target_position - endEffector_position;
+		//Calculate step size, step_size = num/den
+		num = 0.0f;
+		std::vector<float> step_vec =
+		{
+			glm::dot(jacobian_vectors[6], goal_vec),
+			glm::dot(jacobian_vectors[3], goal_vec),
+			glm::dot(jacobian_vectors[0], goal_vec),
+			glm::dot(jacobian_vectors[7], goal_vec),
+			glm::dot(jacobian_vectors[4], goal_vec),
+			glm::dot(jacobian_vectors[1], goal_vec),
+			glm::dot(jacobian_vectors[8], goal_vec),
+			glm::dot(jacobian_vectors[5], goal_vec),
+			glm::dot(jacobian_vectors[2], goal_vec)
+		};
+		for (float x: step_vec)
+		{
+			num += x * x;
+		}
+		//num is done, now den
+		den =
+		{
+			(jacobian_vectors[0][0] * step_vec[0]) +
+			(jacobian_vectors[1][0] * step_vec[1]) +
+			(jacobian_vectors[2][0] * step_vec[2]) +
+			(jacobian_vectors[3][0] * step_vec[3]) +
+			(jacobian_vectors[4][0] * step_vec[4]) +
+			(jacobian_vectors[5][0] * step_vec[5]) +
+			(jacobian_vectors[6][0] * step_vec[6]) +
+			(jacobian_vectors[7][0] * step_vec[7]) +
+			(jacobian_vectors[8][0] * step_vec[8]),
+
+			(jacobian_vectors[0][1] * step_vec[0]) +
+			(jacobian_vectors[1][1] * step_vec[1]) +
+			(jacobian_vectors[2][1] * step_vec[2]) +
+			(jacobian_vectors[3][1] * step_vec[3]) +
+			(jacobian_vectors[4][1] * step_vec[4]) +
+			(jacobian_vectors[5][1] * step_vec[5]) +
+			(jacobian_vectors[6][1] * step_vec[6]) +
+			(jacobian_vectors[7][1] * step_vec[7]) +
+			(jacobian_vectors[8][1] * step_vec[8]),
+
+			(jacobian_vectors[0][2] * step_vec[0]) +
+			(jacobian_vectors[1][2] * step_vec[1]) +
+			(jacobian_vectors[2][2] * step_vec[2]) +
+			(jacobian_vectors[3][2] * step_vec[3]) +
+			(jacobian_vectors[4][2] * step_vec[4]) +
+			(jacobian_vectors[5][2] * step_vec[5]) +
+			(jacobian_vectors[6][2] * step_vec[6]) +
+			(jacobian_vectors[7][2] * step_vec[7]) +
+			(jacobian_vectors[8][2] * step_vec[8])
+		};
+		//now find num / length(den)
+		step_size = num / (pow(glm::length(den), 2) * 10);
+
 		//Jacobian * target which is a 9x3 * 3x1, resulting in a 9x1 matrix with all the anlges to be inserted into rotation degree 3x3.
 		//jacobian vectors are inserted as such:
 		//rotation degree vector =
-		//[6], [3], [0]
-		//[7], [4], [1]
-		//[8], [5], [2]
-		rotation_degree_vector[1][2] += glm::dot(jacobian_vectors[0], goal_vec) * step_size;
-		rotation_degree_vector[2][2] += glm::dot(jacobian_vectors[1], goal_vec) * step_size;
-		rotation_degree_vector[3][2] += glm::dot(jacobian_vectors[2], goal_vec) * step_size;
-		rotation_degree_vector[1][1] += glm::dot(jacobian_vectors[3], goal_vec) * step_size;
+		//[0], [1], [2]
+		//[3], [4], [5]
+		//[6], [7], [8]
+		rotation_degree_vector[1][0] += glm::dot(jacobian_vectors[0], goal_vec) * step_size;
+		rotation_degree_vector[1][1] += glm::dot(jacobian_vectors[1], goal_vec) * step_size;
+		rotation_degree_vector[1][2] += glm::dot(jacobian_vectors[2], goal_vec) * step_size;
+		rotation_degree_vector[2][0] += glm::dot(jacobian_vectors[3], goal_vec) * step_size;
 		rotation_degree_vector[2][1] += glm::dot(jacobian_vectors[4], goal_vec) * step_size;
-		rotation_degree_vector[3][1] += glm::dot(jacobian_vectors[5], goal_vec) * step_size;
-		rotation_degree_vector[1][0] += glm::dot(jacobian_vectors[6], goal_vec) * step_size;
-		rotation_degree_vector[2][0] += glm::dot(jacobian_vectors[7], goal_vec) * step_size;
-		rotation_degree_vector[3][0] += glm::dot(jacobian_vectors[8], goal_vec) * step_size;
+		rotation_degree_vector[2][2] += glm::dot(jacobian_vectors[5], goal_vec) * step_size;
+		rotation_degree_vector[3][0] += glm::dot(jacobian_vectors[6], goal_vec) * step_size;
+		rotation_degree_vector[3][1] += glm::dot(jacobian_vectors[7], goal_vec) * step_size;
+		rotation_degree_vector[3][2] += glm::dot(jacobian_vectors[8], goal_vec) * step_size;
 		return true;
 	}
 	else
@@ -165,15 +219,15 @@ bool Bone_Animation::jacobian_IK()
 void Bone_Animation::get_jac_orientation()
 {
 	glm::vec3 root_top = { root_position[0], root_position[1] + (scale_vector[0][1]/2), root_position[2] };
-	glm::vec3 vec1 = glm::cross(glm::normalize(glm::vec3(bone1Matrix[2])), endEffector_position - root_top);
-	glm::vec3 vec2 = glm::cross(glm::normalize(glm::vec3(bone2Matrix[2])), endEffector_position - bone1_end);
-	glm::vec3 vec3 = glm::cross(glm::normalize(glm::vec3(bone3Matrix[2])), endEffector_position - bone2_end);
-	glm::vec3 vec4 = glm::cross(glm::normalize(glm::vec3(bone1Matrix[1])), endEffector_position - root_top);
-	glm::vec3 vec5 = glm::cross(glm::normalize(glm::vec3(bone2Matrix[1])), endEffector_position - bone1_end);
-	glm::vec3 vec6 = glm::cross(glm::normalize(glm::vec3(bone3Matrix[1])), endEffector_position - bone2_end);
-	glm::vec3 vec7 = glm::cross(glm::normalize(glm::vec3(bone1Matrix[0])), endEffector_position - root_top);
-	glm::vec3 vec8 = glm::cross(glm::normalize(glm::vec3(bone2Matrix[0])), endEffector_position - bone1_end);
-	glm::vec3 vec9 = glm::cross(glm::normalize(glm::vec3(bone3Matrix[0])), endEffector_position - bone2_end);
+	glm::vec3 vec1 = glm::cross(glm::vec3(bone1Matrix[0]), endEffector_position - root_top);
+	glm::vec3 vec2 = glm::cross(glm::vec3(bone1Matrix[1]), endEffector_position - root_top);
+	glm::vec3 vec3 = glm::cross(glm::vec3(bone1Matrix[2]), endEffector_position - root_top);
+	glm::vec3 vec4 = glm::cross(glm::vec3(bone2Matrix[0]), endEffector_position - bone1_end);
+	glm::vec3 vec5 = glm::cross(glm::vec3(bone2Matrix[1]), endEffector_position - bone1_end);
+	glm::vec3 vec6 = glm::cross(glm::vec3(bone2Matrix[2]), endEffector_position - bone1_end);
+	glm::vec3 vec7 = glm::cross(glm::vec3(bone3Matrix[0]), endEffector_position - bone2_end);
+	glm::vec3 vec8 = glm::cross(glm::vec3(bone3Matrix[1]), endEffector_position - bone2_end);
+	glm::vec3 vec9 = glm::cross(glm::vec3(bone3Matrix[2]), endEffector_position - bone2_end);
 
 	jacobian_vectors =
 	{

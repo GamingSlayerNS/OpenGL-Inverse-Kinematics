@@ -34,6 +34,8 @@ public:
 	std::vector<glm::mat4> rotate_matrix;
 	std::vector<glm::vec3> jacobian_vectors;		//9x3 matrix
 	float step_size = 0.001;
+	float num;
+	glm::vec3 den;
 
 	glm::vec3 root_position;
 	glm::vec3 bone1_position;
